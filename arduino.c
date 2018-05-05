@@ -11,7 +11,7 @@ SoftwareSerial BTserial(BT_RX, BT_TX);
 char incomingByte = 0;
 
 void setup() {
-  Serial.begin(9600);   
+  Serial.begin(9600);
   Serial.println("Arduino with HC-06 is ready");
 
   BTserial.begin(38400);
