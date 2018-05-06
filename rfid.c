@@ -2,15 +2,20 @@
 #include <MFRC522.h>
 
 #include <Keypad.h>
+#include <SoftwareSerial.h>
 
-#define RST_PIN         9          // Configurable, see typical pin layout above
-#define SS_PIN          10         // Configurable, see typical pin layout above
+#define RST_PIN         9
+#define SS_PIN          10
+#define BT_RX           2
+#define BT_TX           3
+#define BLUETOOTH_DELAY 1000
 
+MFRC522 mfrc522(SS_PIN, RST_PIN);       // Create MFRC522 instance
+SoftwareSerial BTserial(BT_RX, BT_TX);  // Create a serial for BT communication
 
-MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
-
-const byte ROWS = 4; //four rows
-const byte COLS = 4; //four columns
+// prepare a matrix keyboard settings
+const byte ROWS = 4;
+const byte COLS = 4;
 char key;
 
 char keys[ROWS][COLS] = {
@@ -20,25 +25,46 @@ char keys[ROWS][COLS] = {
   {'*','0','#','D'}
 };
 
-byte rowPins[ROWS] = {15, 16, 17, 18}; //connect to the row pinouts of the keypad (analogue)
-byte colPins[COLS] = {7, 6, 5, 4}; //connect to the column pinouts of the keypad
+byte rowPins[ROWS] = {15, 16, 17, 18};  // analogue
+byte colPins[COLS] = {7, 6, 5, 4};
 
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
 void setup() {
-  Serial.begin(9600);   // Initialize serial communications with the PC
-  SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
-  mfrc522.PCD_DumpVersionToSerial();  // Show details of PCD - MFRC522 Card Reader details
+  Serial.begin(9600);                   // Init serial for RFID & Keypad
+  SPI.begin();                          // Init SPI bus
+  mfrc522.PCD_Init();                   // Init MFRC522
+  mfrc522.PCD_DumpVersionToSerial();    // Show details of PCD - MFRC522 Card Reader details
+
+  BTserial.begin(9600);
+  BTserial.print("AT");
+  delay(BLUETOOTH_DELAY);
+
+  BTserial.print("AT+NAMEgR00t");
+  delay(BLUETOOTH_DELAY);
+
+  BTserial.print("AT+BAUD6");      // Change serial speed to 38400
+  delay(BLUETOOTH_DELAY);
+
+  BTserial.print("AT+PIN0007");
+  delay(BLUETOOTH_DELAY);
 }
 
 void loop() {
-  if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
+  // rfid input
+  if (mfrc522.PICC_IsNewCardPresent()) {
+    mfrc522.PICC_ReadCardSerial();
     mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
   }
 
+  // keypad input
   key = keypad.getKey();
   if (key){
     Serial.println(key);
+  }
+
+  // bluetooth
+  if (BTserial.available()) {
+    Serial.println(BTserial.readString());
   }
 }

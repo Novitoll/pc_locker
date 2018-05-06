@@ -32,18 +32,18 @@ class SerialReader(object):
         os.system('gnome-screensaver-command -%s' % command)
 
 
-class RFIDReader(SerialReader):
+class MainReader(SerialReader):
     KEY_CARD_UID = "Card UID"
 
     def __init__(self, *args, **kwargs):
-        super(RFIDReader, self).__init__(*args, **kwargs)
+        super(MainReader, self).__init__(*args, **kwargs)
         self.attempt = 0
 
     def pin_code_validate(self):
         pin_code = []
 
         while len(pin_code) != len(VALID_PIN_CODE):
-            line = super(RFIDReader, self).read_line()
+            line = super(MainReader, self).read_line()
             if line == "#":  # cancel
                 break
             elif len(line) != 1:
@@ -75,26 +75,42 @@ class RFIDReader(SerialReader):
 
 
 def main(args):
-    rfid = RFIDReader(port=args.dp, baudrate=args.srfid)
+    rfid = MainReader(port=args.dp, baudrate=args.sbaud)
+    btooth = MainReader(port=args.dp, baudrate=args.sbaud)
 
     while True:
-        line = rfid.read_line()
-        if line:
-            rfid_uid_valid = rfid.uid_validate(line)
+        try:
+            line = rfid.read_line()
+            btline = btooth.read_line()
 
-            if rfid_uid_valid:
-                print("Please enter pin code")
-                pin_code_valid = rfid.pin_code_validate()
-
-                if pin_code_valid:
-                    rfid.pc_action(command=UNLOCK)
+            if btline == "0":
+                print("BT LOCK")
+            elif btline == "1":
+                print("BT UNLOCK")
             else:
-                rfid.pc_action(command=LOCK)
+                print(btline)
+
+            if line:
+                rfid_uid_valid = rfid.uid_validate(line)
+
+                if rfid_uid_valid:
+                    print("Please enter pin code")
+                    pin_code_valid = rfid.pin_code_validate()
+
+                    if pin_code_valid:
+                        # rfid.pc_action(command=UNLOCK)
+                        print("UNLOCK")
+                else:
+                    # rfid.pc_action(command=LOCK)
+                    print("LOCK")
+        except Exception as exc:
+            print("Exception occurred {}".format(exc))
+            continue
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dp", default="/dev/ttyACM0", help="Device that Arduino is connected with this PC")
-    parser.add_argument("--srfid", default=9600, help="Serial number that Arduino listens to RFID")
+    parser.add_argument("--dp", default="/dev/ttyACM2", help="Device that Arduino is connected with this PC")
+    parser.add_argument("--sbaud", default=9600, help="Serial number that Arduino listens to RFID")
     args = parser.parse_args()
     main(args)
