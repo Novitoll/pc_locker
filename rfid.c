@@ -36,14 +36,11 @@ void setup() {
   mfrc522.PCD_Init();                   // Init MFRC522
   mfrc522.PCD_DumpVersionToSerial();    // Show details of PCD - MFRC522 Card Reader details
 
-  BTserial.begin(9600);
+  BTserial.begin(38400);
   BTserial.print("AT");
   delay(BLUETOOTH_DELAY);
 
   BTserial.print("AT+NAMEgR00t");
-  delay(BLUETOOTH_DELAY);
-
-  BTserial.print("AT+BAUD6");      // Change serial speed to 38400
   delay(BLUETOOTH_DELAY);
 
   BTserial.print("AT+PIN0007");
@@ -65,6 +62,7 @@ void loop() {
 
   // bluetooth
   if (BTserial.available()) {
-    Serial.println(BTserial.readString());
+    String btInput = BTserial.readString();
+    Serial.println(btInput);
   }
 }

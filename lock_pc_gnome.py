@@ -66,43 +66,41 @@ class MainReader(SerialReader):
                 self.pin_code_validate()
 
     def uid_validate(self, line):
-        valid = False
-        if self.KEY_CARD_UID in line:
-            print(line)
-            uid = line.split("%s:" % self.KEY_CARD_UID)[1].strip()
-            valid = uid == VALID_RFID_UID
-        return valid
+        uid = line.split("%s:" % self.KEY_CARD_UID)[1].strip()
+        return uid == VALID_RFID_UID
 
 
 def main(args):
     rfid = MainReader(port=args.dp, baudrate=args.sbaud)
-    btooth = MainReader(port=args.dp, baudrate=args.sbaud)
 
     while True:
         try:
             line = rfid.read_line()
-            btline = btooth.read_line()
-
-            if btline == "0":
-                print("BT LOCK")
-            elif btline == "1":
-                print("BT UNLOCK")
-            else:
-                print(btline)
-
             if line:
-                rfid_uid_valid = rfid.uid_validate(line)
+                print("LINE:%s" % line)
 
-                if rfid_uid_valid:
-                    print("Please enter pin code")
+                # rfid
+                if rfid.KEY_CARD_UID in line:
+                    rfid_uid_valid = rfid.uid_validate(line)
+                    if rfid_uid_valid:
+                        rfid.pc_action(command=UNLOCK)
+                    else:
+                        rfid.pc_action(command=LOCK)
+                        sleep(10)
+
+                # keypad
+                if line == "*":
+                    print("Please enter pin code:")
                     pin_code_valid = rfid.pin_code_validate()
-
                     if pin_code_valid:
-                        # rfid.pc_action(command=UNLOCK)
-                        print("UNLOCK")
-                else:
-                    # rfid.pc_action(command=LOCK)
-                    print("LOCK")
+                        rfid.pc_action(command=UNLOCK)
+                        continue
+
+                # bluetooth
+                if line == "u":
+                    rfid.pc_action(command=UNLOCK)
+                elif line == "l":
+                    rfid.pc_action(command=LOCK)
         except Exception as exc:
             print("Exception occurred {}".format(exc))
             continue
