@@ -4,7 +4,6 @@ import os
 import argparse
 import logging
 import requests
-
 from time import gmtime, strftime, sleep
 
 FORMAT = '%(asctime)-15s %(message)s'
@@ -23,6 +22,10 @@ with open("token", "r") as f:
     bot_token = f.readline().strip()
     f.close()
 
+def is_connected_internet():
+    response = requests.get("https://google.com")
+    print(response.status_code)
+    return response.status_code == 200
 
 class SerialReader(object):
     def __init__(self, port, baudrate, args=None):
@@ -52,7 +55,7 @@ class MainReader(SerialReader):
     def send_msg(self, text):
         URL = "https://api.telegram.org/bot%s/sendMessage" % bot_token
         t0 = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        
+
         req_body = {
             "chat_id": self.args.chat_id,  # ws-events chat
             "text": "%s: %s" % (t0, text)
@@ -130,7 +133,6 @@ def main(args):
             if args.notify:
                 rfid.send_msg(msg)
             continue
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
